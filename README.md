@@ -33,13 +33,13 @@ You can refer to this [engineering blog](https://engineering.pinterest.com/blog/
 We also built some data structures like lists, hashmap and json for Pinterest Engineers to easily read/write to configurations. We also have a structure called Decider (ranging from 0 to 100) 
 for engineers to dynamically change values in realtime. 
 
-Both application configuration management and service discovery are watched and updated by a process running on each box called Zk_Update_Monitor. Our philosophy is to leverage
-the atomic broadcasting nature in Zookeeper to fanout the change to every box so each machine only needs to talk to local file, instead of establishing a session to Zookeeper. Zk_update_monitor
+Both application configuration management and service discovery are watched and updated by a process running on each box called ZK Update Monitor. Our philosophy is to leverage
+the atomic broadcasting nature in Zookeeper to fanout the change to every box so each machine only needs to talk to local file, instead of establishing a session to Zookeeper. ZK Update Monitor
 is the only proxy talking to Zookeeper on each box for getting the newest serverset of configuration content. We have an [engineering blog](https://engineering.pinterest.com/blog/zookeeper-resilience-pinterest) 
 which contains the more details about it.
 
 Another framework we provide in KingPin is called MetaConfig Manager. We found that sometimes we need to manage the dependency like ```what cluster needs what configuration or serverset```. 
-MetaConfig is basically a configuraiton which tells ZK_Update_Monitor how to download a particular configuration or serverset. The MetaConfig Manager stores the dependency graph in Zookeeper and 
+MetaConfig is basically a configuraiton which tells ZK Update Monitor how to download a particular configuration or serverset. The MetaConfig Manager stores the dependency graph in Zookeeper and 
 metaconfig in S3 (which is built on top of Config Utils). If a box want to add a serverset or configuration dependency, simple call MetaConfig API and the new config will be added to all subscribers 
 immediately.
 
@@ -117,14 +117,40 @@ up and running, S3 key file set up and KingPin properly installed.
 ### Application Configuration Management
 Here is an example of creating a manageddata, updating it and let ZK Update Monitor download the content.
 
+The application configuration framework consists of 3 parts: Manageddata or Decider on top of Config Utils, ZK Update Monitor, and MetaConfig Manager. 
+
+![Package Architecture](https://cloud.githubusercontent.com/assets/15947888/12151080/1f5d0698-b462-11e5-8c4f-78809cee3ec3.png)
+
+In the following example, we walk through the process an application subscribes an managed list configuration, and watches the changes and download to local disk. 
+Decider works almost the same except the difference in APIs.
+
 #### Creating a ManagedData
 The name of manageddata has a Domain and a Key. The domain is like the group, the key is like the member. For example, 
 a typical managedlist used inside Pinterest is called "config.manageddata.spam.blacklist". Here "spam" is the domain,
 "blacklist" is the key.
 
-Run the following 
+Run the following command for starting the an interactive tool for creating a manageddata configuration:
+```sh
+cd kingpin
+python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket] -e s3.amazonaws.com
+```
+
+Type the command number or name 
+
+#### Creating a Dependency
+
+
+#### Changing the content of ManagedData configurations
+
+
 
 ### Thrift and Service Discovery
+
+#### Joining a serverset
+When a service host is started, it needs to register itself 
+
+#### Using Thrift Utils to make service calls
+
 
 ## Contact
 [ Shu Zhang ](mailto:shu@pinterest.com)
