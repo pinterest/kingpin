@@ -73,7 +73,9 @@ sudo bin/zkServer.sh stop
 ```
 
 We use a file to list a set of Zookeeper endpoints. For the local Zookeeper single node case, we provided a 
-file called ```local_zk_hosts``` under examples/. You can refer to that file for future use.
+file called ```local_zk_hosts``` under examples directory. There should only be one liner there which points to the localhost zookeeper node.
+You need to refer to that file for future use.
+
 
 ### Install Thrift
 Follow the instructions [in this page](https://thrift.apache.org/docs/install/) for installing thrift library.
@@ -88,6 +90,7 @@ as the clean container of KingPin and its dependencies.
 cd kingpin
 pip install virtualenv
 virtualenv env
+virtualenv -p /usr/bin/python2.7 venv
 source venv/bin/activate
 ```
 
@@ -103,6 +106,23 @@ python setup.py install
 
 After this, KingPin will be installed in your venv, 
 and you can run KingPin scripts directly in virtual environment.
+
+### Install Supervisor
+ZK Update Monitor is running inside [Supervisor](http://supervisord.org/). Supervisor makes ZK Update Monitor to run under the supervisord container. 
+
+We also recommend installing supervisor under Venv. To install supervisor, simply run:
+```sh
+pip install supervisor
+```
+
+We provided an example supervisor configuration under examples/ directory. The configuration has some fields to fill in like dependency name and S3 bucket name. 
+
+Once you filled in the blanks in the configuration, you can run ZK Update Monitor via Supervisor under KingPin Directory:
+
+```sh
+sudo supervisord -c examples/supervisor_zk_update_monitor.conf
+```
+
 
 #### Unit Tests
 ```sh
@@ -122,7 +142,8 @@ The application configuration framework consists of 3 parts: Manageddata or Deci
 ![Package Architecture](https://cloud.githubusercontent.com/assets/15947888/12151080/1f5d0698-b462-11e5-8c4f-78809cee3ec3.png)
 
 In the following example, we walk through the process an application subscribes an managed list configuration, and watches the changes and download to local disk. 
-Decider works almost the same except the difference in APIs.
+Decider works almost the same except the difference in APIs. We provide a script in examples/metaconfig_shell.py which help you easily create conifg and dependencies. 
+Of course, on top of the config APIs, you can easily build a fancier UI.
 
 #### Creating a ManagedData
 The name of manageddata has a Domain and a Key. The domain is like the group, the key is like the member. For example, 
@@ -132,17 +153,52 @@ a typical managedlist used inside Pinterest is called "config.manageddata.spam.b
 Run the following command for starting the an interactive tool for creating a manageddata configuration:
 ```sh
 cd kingpin
-python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket] -e s3.amazonaws.com
+python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
 ```
 
-Type the command number or name 
+Type "2" -> "1" to create a manageddata, and give the domain and key name. Let's give the domain called "test", key called "test_config". The created manageddata is then called ```config.manageddata.test.test_config```. Remember this name for future use.
 
 #### Creating a Dependency
+The manageddata should be created. Now we need to create a dependency. 
+A dependency is a collection of manageddata or serverset which tells the subscription of a cluster to a set of configurations. ZK Update Monitor need to know the dependency of the localbox so it can subscribe and downlaod corresponding configurations.
 
+Run the ```metaconfig_shell.py``` again, and type "1" and create a dependency. In order to tell the difference between a dependency and a configuration internally, we require dependency names to be ended with ```.dep```. 
+
+Let's create a a dependency called ```test_dependency.dep```.
+
+#### Adding the Manageddata to a Dependency
+Then we should be able to add the created manageddata to the created dependency. Run ```metaconfig_shell.py``` and type "3", type ```test_dependency.dep``` and ```config.manageddata.test.test_config``` respectively to add the manageddata config into the dependency.
+
+
+#### Running ZK Update Monitor
+Don't forget to start ZK Update Monitor. You need to replace the "Dependency Name" in the Zk Update Monitor command line inside supervisord configuration to "test_dependency.dep".
+
+Now ZK Update Monitor is watching changes of the configuration called "config.manageddata.test.test_config". You can double check by querying the Zk Update Monitor admin flask endpoint:
+
+```sh
+curl 127.0.0.1:9898/admin/watched_metaconfigs
+```
+
+It should show the watched configuration list, currenly should be only "config.manageddata.test.test_config".
 
 #### Changing the content of ManagedData configurations
+Now we can try change the content of the manageddata configuration. For now the modification can be done in the python shell. Inside Pinterest we use a web portal for people the change the content.
+Suppose the configuration will be a managedlist.
 
+Bring up python.
+```sh
+python
+```
 
+Try add a value into the managedlist.
+```python
+from kingpin.manageddata.managed_datastructures import ManagedList
+managedlist = ManagedList("test", "test_config", "test config", "a config for test", ["127.0.0.1:2181"], "examples/example_aws_keyfile.conf", "some_test_bucket")
+managedlist.add("test_data")
+```
+
+If no error happens, you can check the content of the managedlist which is ```/var/config/config.manageddata.test.test_config```. 
+There should be one item called "test_data" inside. 
 
 ### Thrift and Service Discovery
 
