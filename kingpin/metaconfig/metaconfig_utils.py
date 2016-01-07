@@ -26,8 +26,7 @@ ZK_DOWNLOAD_DATA_PREFIX = None
 METACONFIG_ZK_PATH_FORMAT = '/metaconfig/metaconfig/{}'
 DEPENDENCY_ZK_PATH_FORMAT = '/metaconfig/dependency/{}'
 ZK_DOWNLOAD_DATA_SERVERSET_FORMAT = 'zk_download_data.py -f /var/serverset/{} -p {} -m serverset'
-ZK_DOWNLOAD_DATA_CONFIGV2_FORMAT = \
-    'zk_download_data.py -f /var/config/{} --from-s3 {} --aws-key-file /etc/configs_readonly.conf -m config -p {}'
+ZK_DOWNLOAD_DATA_CONFIGV2_FORMAT = 'zk_download_data.py -f /var/config/{} --from-s3 {} -m config -p {}'
 
 
 class MetaConfigManager(object):

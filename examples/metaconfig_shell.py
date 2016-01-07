@@ -104,8 +104,8 @@ def exit_shell():
 
 instructions_set = [
     ("1. Create a new dependency", create_dependency),
-    ("2. Create a new metaconfig", create_metaconfig),
-    ("3. Add a metaconfig or dependency to dependency", add_to_dependency),
+    ("2. Create a new manageddata or a serverset", create_metaconfig),
+    ("3. Add a manageddata/serverset or a dependency to dependency", add_to_dependency),
     ("4. View Dependency and its members", view_dependencys),
     ("5. View all metaconfigs", view_metaconfigs),
     ("6. Exit the shell", exit_shell)

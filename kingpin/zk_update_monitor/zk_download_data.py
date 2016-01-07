@@ -413,13 +413,13 @@ def initialize_zk_update_monitor_endpoints(port):
     global _REPORT_SERVERSET_TYPE_ENDPOINT
 
     _ZK_UPDATE_MONITOR_FLASK_PORT = int(port)
-    _METADATA_REPORT_ENDPOINT = 'http://localhost:%d/admin/report_metadata' % \
+    _METADATA_REPORT_ENDPOINT = 'http://127.0.0.1:%d/admin/report_metadata' % \
                                 _ZK_UPDATE_MONITOR_FLASK_PORT
-    _FILE_MODIFICATION_REPORT_ENDPOINT = 'http://localhost:%d/admin/report_file_modification' \
+    _FILE_MODIFICATION_REPORT_ENDPOINT = 'http://127.0.0.1:%d/admin/report_file_modification' \
                                          % _ZK_UPDATE_MONITOR_FLASK_PORT
-    _QUERY_SERVERSET_TYPE_ENDPOINT = "http://localhost:%d/admin/query_serverset_type" \
+    _QUERY_SERVERSET_TYPE_ENDPOINT = "http://127.0.0.1:%d/admin/query_serverset_type" \
                                      % _ZK_UPDATE_MONITOR_FLASK_PORT
-    _REPORT_SERVERSET_TYPE_ENDPOINT = "http://localhost:%d/admin/report_serverset_type" \
+    _REPORT_SERVERSET_TYPE_ENDPOINT = "http://127.0.0.1:%d/admin/report_serverset_type" \
                                       % _ZK_UPDATE_MONITOR_FLASK_PORT
 
 

@@ -6,3 +6,4 @@ venv/
 env/
 dist/
 *.pyc
+examples/real_boto_config.conf
