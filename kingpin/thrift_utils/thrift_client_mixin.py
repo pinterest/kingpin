@@ -105,7 +105,6 @@ from thrift.Thrift import TException
 from thrift.transport.TSocket import TTransportException
 from thrift.transport.TSSLSocket import TSSLSocket
 from thrift.transport.TTransport import TBufferedTransport
-from thrift.transport.TTransport import TFramedTransport
 
 from ..kazoo_utils.hosts import RandomHostSelector
 from .base_thrift_exceptions import ThriftConnectionTimeoutError
@@ -598,7 +597,7 @@ class ThriftClientConnectionEnsured(type):
     def __new__(cls, classname, bases, classdict):
         _client_cls = bases[0]  # FIXME: Might not always be the first base.
 
-        def __init__(self, host_provider, timeout=5000, is_framed=True,
+        def __init__(self, host_provider, timeout=5000,
                      retry_policy=None, statsd_client=dummy_statsd,
                      socket_connection_timeout=None,
                      always_retry_on_new_host=False,
@@ -612,7 +611,6 @@ class ThriftClientConnectionEnsured(type):
                 host_provider: A ``HostProvider`` to provide the list of
                     live hosts for the client to talk to.
                 timeout: Timeout in milliseconds for connections.
-                is_framed: Whether to use framed transport.
                 retry_policy: On what exception the request should be retried.
                 socket_connection_timeout: timeout for establishing the
                     underlying socket connection for the first time. By
@@ -640,7 +638,6 @@ class ThriftClientConnectionEnsured(type):
             self.host = host
             self.port = int(port)
             self.timeout = timeout
-            self.is_framed = is_framed
             self.is_ssl = is_ssl
             self.validate = validate
             self.ca_certs = ca_certs
@@ -709,10 +706,8 @@ class ThriftClientMixin(object):
         self._socket.setTimeout(conn_timeout_ms)
 
         # Transport.
-        if self.is_framed:
-            self._transport = TFramedTransport(self._socket)
-        else:
-            self._transport = TBufferedTransport(self._socket)
+        self._transport = TBufferedTransport(self._socket)
+
         # open() may throw TTransportException() if fail to connect.
         self._transport.open()
 

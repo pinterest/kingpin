@@ -847,7 +847,8 @@ def main():
         help="The root dependency name, which stores what "
              "config/serversets are needed to be watched by ZUM. "
              "The dependency can have either config/serverset name, "
-             "or other dependencies.")
+             "or other dependencies."
+    )
     parser.add_argument(
         "-p", "--port", dest="port", metavar="PORT",
         required=True,

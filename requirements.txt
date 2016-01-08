@@ -9,7 +9,7 @@ simplejson
 kazoo==1.0
 
 # Requirements for Thrift_utils
-thrift==0.8.0
+thrift==0.9.3
 
 # Requirements for Config_utils
 boto==2.38.0
