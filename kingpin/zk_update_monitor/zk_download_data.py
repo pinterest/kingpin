@@ -253,31 +253,6 @@ def _check_stale_file_content(existing_content, file_path, zk_data, mode):
     return True
 
 
-def check_flappy_serverset(zk_serverset, existing_serverset,
-                           rejection_ratio, serverset_minimum_size,
-                           file_path):
-    # If the serverset has a radical change, we assume this is unusual
-    # and does not update the local serverset file content.
-    existing_count = _get_server_count(existing_serverset)
-    new_count = _get_server_count(zk_serverset)
-
-    if new_count < serverset_minimum_size:
-        log.error("Serverset %s has %d hosts, "
-                  "falling below its minimum allowed size %d." % (
-            file_path, existing_count, serverset_minimum_size))
-        exit(_SERVER_COUNT_DROP_BELOW_THRESHOLD)
-
-    if ((existing_count >= DEFAULT_MIN_SERVER_COUNT_FOR_REJECTION_RATIO and
-        new_count < existing_count * rejection_ratio) or
-       (existing_count > 0 and new_count == 0)):
-        log.error("Serverset in zk contains %d servers and is smaller "
-                  "than %d%% of count of servers in existing file %s "
-                  "of %d servers rejecting the new serverset"
-                  % (new_count, rejection_ratio*100,
-                     file_path, existing_count))
-        exit(_TOO_FEW_SERVERS_IN_ZK_CODE)
-
-
 def report_metadata(mode, zk_data, zk_path, version, notification_timestamp,
                     modification_timestamp, retry_count=0):
     if not zk_path:
@@ -603,11 +578,6 @@ def main():
             existing_content = file.read()
     except IOError:
         existing_content = None
-
-    if mode == 'SERVERSET':
-        check_flappy_serverset(zk_data, existing_content,
-                               args.rejection_ratio,
-                               args.serverset_minimum_size, args.file)
 
     if args.report_metadata:
         if mode == 'SERVERSET':

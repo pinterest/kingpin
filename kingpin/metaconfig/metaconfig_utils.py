@@ -71,7 +71,11 @@ class MetaConfigManager(object):
         self._kazoo_client().ensure_path("/metaconfig/dependency")
 
     def _kazoo_client(self):
-        kazoo_client = KazooClientManager(self.zk_hosts).get_client()
+        # Make the connection timeout long so the executive shell creating the
+        # metaconfigs will not timeout.
+        kazoo_client = KazooClientManager(self.zk_hosts,
+                                          start_timeout=200.0,
+                                          session_timeout=200.0).get_client()
         if not kazoo_client:
             KazooClientManager(self.zk_hosts)._reconnect()
             kazoo_client = KazooClientManager(self.zk_hosts).get_client()

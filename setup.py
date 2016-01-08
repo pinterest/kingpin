@@ -27,7 +27,8 @@ setup(
     long_description=readme,
     scripts=['kingpin/zk_update_monitor/zk_download_data.py',
              'kingpin/zk_update_monitor/zk_update_monitor.py',
-             'kingpin/zk_update_monitor/zk_util.py'],
+             'kingpin/zk_update_monitor/zk_util.py',
+             'kingpin/zk_register/zk_register.py'],
     packages=find_packages(exclude=["kingpin.tests.*"]),
     package_dir={'kingpin': 'kingpin'},
     zip_safe = False

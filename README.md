@@ -101,11 +101,11 @@ pip install -r requirements.txt
 
 #### Install KingPin
 ```sh
-python setup.py install
+sudo python setup.py install
 ```
 
-After this, KingPin will be installed in your venv, 
-and you can run KingPin scripts directly in virtual environment.
+You may need to run this script outside venv as well so our supervisord can capture the executable. Another option is to change the supervisor
+config to tell the absolute path of venv/bin so ZK Update Monitor and ZK Register can be run correctly.
 
 ### Install Supervisor
 ZK Update Monitor is running inside [Supervisor](http://supervisord.org/). Supervisor makes ZK Update Monitor to run under the supervisord container. 
@@ -139,7 +139,7 @@ Here is an example of creating a manageddata, updating it and let ZK Update Moni
 
 The application configuration framework consists of 3 parts: Manageddata or Decider on top of Config Utils, ZK Update Monitor, and MetaConfig Manager. 
 
-![Package Architecture](https://cloud.githubusercontent.com/assets/15947888/12151080/1f5d0698-b462-11e5-8c4f-78809cee3ec3.png)
+![Architecture](https://cloud.githubusercontent.com/assets/15947888/12151080/1f5d0698-b462-11e5-8c4f-78809cee3ec3.png)
 
 In the following example, we walk through the process an application subscribes an managed list configuration, and watches the changes and download to local disk. 
 Decider works almost the same except the difference in APIs. We provide a script in examples/metaconfig_shell.py which help you easily create conifg and dependencies. 
@@ -201,11 +201,106 @@ If no error happens, you can check the content of the managedlist which is ```/v
 There should be one item called "test_data" inside. 
 
 ### Thrift and Service Discovery
+In this example we bring up a test thrift server locally, register it to a serverset and use thrift_util 
+to talk to the test server.
+
+![Architecture](https://cloud.githubusercontent.com/assets/15947888/12178908/f293f14a-b528-11e5-8ed9-a1fb3a1541ef.png)
+
+
+#### Creating a serverset
+Let's create the serverset of the service "test_service". Running in a environment called "prod". The format of a serverset name is discovery.{service name}.{service environment}.
+So the serverset name in this case will be ```discovery.test_service.prod```. 
+
+Run the metaconfig_shell again to create the serverset:
+
+```sh
+cd kingpin
+python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
+```
+Type "2" -> "2" to create a serverset, and give the service name and service environment. Let's give the service name called "test_service", environment called "prod". 
+
+#### Adding the serverset to dependency
+Suppose you have already created the dependency called "test_dependency.dep". 
+We can add the serverset to the dependency so ZK Update Monitor can watch any change of the serverset:
+
+```sh
+python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
+```
+Type "3" to add the serverset "discovery.test_service.prod" to "test_dependency.dep" as the instruction shows.
+
 
 #### Joining a serverset
-When a service host is started, it needs to register itself 
+When a service host is started, it needs to register itself to the serverset so client can know the endpoint to connect to.
+We delegate the registration to another daemon called ```zk_register```. 
+
+Try starting zk_regsiter to register the local host to discovery.test_service.prod as port 8081:
+
+```sh
+cd kingpin
+zk_register.py -p 8081 -s test_service -e prod -z examples/local_zk_hosts
+```
+
+The command will hang because it need to keep a session to Zookeeper to keep an ephemeral node up representing this host. To verify the updated
+serverset is observed by ZK Update Monitor, go to ```/var/serverset/```, there should be a file called ```discovery.test_service.prod``` and it 
+should have one line which is the endpoint of localhost the service will be running on.
+
+
+##### Notice
+One thing you may need to put special care is the failure case - if the service process is dead but the zk_register is still running,
+clients may talk to an endpoint with no service running on that port. Here are suggestions to prevent that:
+1. Have some extra logic checking the healthness of the server inside zk_register so it will stop registering if the healthcheck fails.
+2. Put the registration part inside the service process. You may need to implement the registration logic in other languages. 
 
 #### Using Thrift Utils to make service calls
+We provide an example thrift definition in examples/ directory called ```test_service.thrift```.
+
+Run the following command to get the generated code in Python:
+```sh
+thrift -r --gen py examples/test_service.thrift
+```
+
+#### Start the Python Thrift Server
+We provided an server startup script under examples/test_service_server.py. After the 
+python thrift code is generated, move the ```test_service_server.py``` under gen-py/test_service.
+
+Run ```test_service_server``` and the server will be running on port 8081.
+
+#### Make a call to thrift server using Thrift_utils
+Here are an example using Thrift Util to construct a wrapper thrift client which has features like 
+connection pool management, dynamic serverset management and retry management, etc:
+
+```python
+from kingpin.thrift_utils.thrift_client_mixin import PooledThriftClientMixin
+from kingpin.thrift_utils.base_thrift_exceptions import ThriftConnectionError
+from kingpin.kazoo_utils.hosts import HostsProvider
+
+import TestService
+
+class TestServiceConnectionException(ThriftConnectionError):
+    pass
+
+class TestServiceClient(TestService.Client, PooledThriftClientMixin):
+    def get_connection_exception_class(self):
+        return TestServiceConnectionException
+
+testservice_client = TestServiceClient(
+    HostsProvider([], file_path="/var/serverset/discovery.test_service.prod"),
+    timeout=3000,
+    pool_size=10,
+    always_retry_on_new_host=True)
+```
+
+The above example is how we constrcut the thrift client class with Thrift Util features turned on. The class should inherit from your thrift service client (generated by thrift)
+annd PooledThriftClientMixed (make sure the generated thrift client class is the first base class). 
+
+You must implement a method called ```get_connection_exception_class``` which returns a class which will be thrown when all retries are failed.
+
+Then you need to initialize an client object. In the constructor, you need to pass in a HostsProvider as the first argument. Passing in the serverset file 
+path there so the client can always read the endpoint in the file (which may change dynamically). The frist parameter of HostsProvider constructor is a list
+of static endpoint list, we don't recommend using that because it does't provide the benefit of dynamic serverset. 
+
+We also provide an example under ```examples/test_service_client.py```, move it under gen-py/test_service
+and run the script, it should output "pong".
 
 
 ## Contact

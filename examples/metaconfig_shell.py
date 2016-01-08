@@ -56,10 +56,10 @@ def create_metaconfig():
         # create the meatconfig for serverset
         print "What's the name of the service whose serverset will be created?"
         service_name = raw_input().lower()
-        print "What's the stage of the serverset? For example, prod or integ"
-        service_stage = raw_input().lower()
-        serverset_zk_path = "/discovery/{}/{}".format(service_name, service_stage)
-        metaconfig_name = "discovery.{}.{}".format(service_name, service_stage)
+        print "What's the environment of the serverset? For example, prod or integ"
+        service_environment = raw_input().lower()
+        serverset_zk_path = "/discovery/{}/{}".format(service_name, service_environment)
+        metaconfig_name = "discovery.{}.{}".format(service_name, service_environment)
         metaconfig_manager.create_default_metaconfig_for_serverset(
             metaconfig_name, serverset_zk_path
         )
