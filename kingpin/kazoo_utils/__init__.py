@@ -24,7 +24,7 @@ server set.
 
 To join a server set::
 
-    server_set = ServerSet("/.../path_to_root_znode")
+    server_set = ServerSet("/.../path_to_root_znode", file_containing_zk_endpoints)
     server_set.join("127.0.0.1:8080")
 
 The sample code above will try to join the server set in the background,

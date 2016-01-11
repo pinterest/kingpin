@@ -94,8 +94,6 @@ class MockRandom(object):
 
 @mock.patch(thrift_client_mixin.__name__ + '.TNoDelaySocket',
             new=mock.MagicMock())
-@mock.patch(thrift_client_mixin.__name__ + '.TFramedTransport',
-            new=mock.MagicMock())
 @mock.patch(thrift_client_mixin.__name__ + '.TBinaryProtocolAcceleratedFactory',
             new=mock.MagicMock())
 class ThriftClientMixinTestCase(unittest.TestCase):
@@ -414,8 +412,6 @@ class FakePooledThriftClientMixin(AnotherFakeClient, PooledThriftClientMixin):
 
 
 @mock.patch(thrift_client_mixin.__name__ + '.TNoDelaySocket',
-            new=mock.MagicMock())
-@mock.patch(thrift_client_mixin.__name__ + '.TFramedTransport',
             new=mock.MagicMock())
 @mock.patch(thrift_client_mixin.__name__ + '.TBinaryProtocolAcceleratedFactory',
             new=mock.MagicMock())

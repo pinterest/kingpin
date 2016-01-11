@@ -48,7 +48,7 @@ class MetaConfigManagerTestCase(unittest.TestCase):
 
         config_zk_path = "/config/manageddata/spam/blacklist"
         generated_download_command = metaconfig_manager.construct_zk_download_data_command_for_config(config_zk_path)
-        expected_download_command = 'zk_download_data.py -f /var/config/config.manageddata.spam.blacklist --from-s3 /data/config/manageddata/spam/blacklist --aws-key-file /etc/configs_readonly.conf -m config -p /config/manageddata/spam/blacklist'
+        expected_download_command = 'zk_download_data.py -f /var/config/config.manageddata.spam.blacklist --from-s3 /data/config/manageddata/spam/blacklist -m config -p /config/manageddata/spam/blacklist'
         self.assertEqual(expected_download_command, generated_download_command)
 
     @mock.patch("kazoo.client.KazooClient.__new__",

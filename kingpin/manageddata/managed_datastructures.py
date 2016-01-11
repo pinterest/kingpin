@@ -14,6 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+A various of utils we use on top of config_utils which provides typical datastructures
+like lists, hashmap, mappedlist and Json. The content of these datastructures is
+stored in S3, and uses Zookeeper as the notification. ZK Update Monitor is used
+to sync the newest content to local disks.
+
+"""
 import copy
 import itertools
 import logging

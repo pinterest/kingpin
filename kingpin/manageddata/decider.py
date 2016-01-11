@@ -19,6 +19,12 @@ Decider is built on top of managedhashmap to be a key_value store whose keys
 are strings (experiment name), values are integer ranging from 0 to 100.
 This is widely used in Pinterest to decide the % / branching of code logic
 and deciding experiments in real time.
+
+Before using Decider, you need to create the ManagedData for decider, for example
+using metaconfig_shell.py in examples/.
+
+The domain of manageddata is "admin", key is "decider".
+
 """
 
 import logging
@@ -57,7 +63,6 @@ class Decider(object):
             decider_value = default
 
         return decider_value
-
 
     def decide_experiment(self, experiment_name, default=False):
         """Decides if a experiment needs to be run. Calculate a random number

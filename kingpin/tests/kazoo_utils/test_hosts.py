@@ -25,8 +25,7 @@ import time
 from unittest import TestCase
 
 from kingpin.kazoo_utils import KazooClientManager, ServerSet, hosts, FileWatch
-from kingpin.kazoo_utils.hosts import (BaseHostSelector, HostsProvider,
-                                       HostProviderDict, RandomHostSelector)
+from kingpin.kazoo_utils.hosts import (BaseHostSelector, HostsProvider, RandomHostSelector)
 
 ZK_HOSTS = ["datazk001:2181", "datazk002:2181"]
 
@@ -171,16 +170,8 @@ class HostSelectorTestCase(TestCase):
         testutil.initialize_kazoo_client_manager(ZK_HOSTS)
         kazoo_client = KazooClientManager().get_client()
         kazoo_client.ensure_path(HostSelectorTestCase.SERVER_SET_PATH)
-        # Verify host provider is a singleton
-        host_provider_dict = HostProviderDict()
-        self.assertTrue(host_provider_dict is HostProviderDict())
-        # When there is no endpoint in the server set, by default,
-        # use the static host list.
-        host_provider_dict.register(HostSelectorTestCase.HOST_PROVIDER_NAME,
-                                    HostSelectorTestCase.PORT_LIST,
-                                    HostSelectorTestCase.SERVER_SET_PATH)
-        host_provider = host_provider_dict.get(
-            HostSelectorTestCase.HOST_PROVIDER_NAME)
+        host_provider = HostsProvider(HostSelectorTestCase.PORT_LIST,
+                                      HostSelectorTestCase.SERVER_SET_PATH)
         self.assertTrue(host_provider.initialized)
         self.assertTrue(host_provider.hosts)
         # Since there is no live hosts in the server set, host provider should
@@ -388,17 +379,8 @@ class HostSelectorWithLocalFileTestCase(TestCase):
         f.write(HostSelectorWithLocalFileTestCase.HOST_LIST[0])
         f.close()
         HostSelectorWithLocalFileTestCase.FILE_WATCH._check_file_updates()
-
-        # Verify host provider is a singleton
-        host_provider_dict = HostProviderDict()
-        self.assertTrue(host_provider_dict is HostProviderDict())
-        # When there is no endpoint in the local server set file, by default,
-        # use the static host list.
-        host_provider_dict.register(HostSelectorWithLocalFileTestCase.HOST_PROVIDER_NAME,
-                                    HostSelectorWithLocalFileTestCase.HOST_LIST,
-                                    file_path=tmp_file)
-        host_provider = host_provider_dict.get(
-            HostSelectorWithLocalFileTestCase.HOST_PROVIDER_NAME)
+        host_provider = HostsProvider(
+            HostSelectorWithLocalFileTestCase.HOST_LIST, file_path=tmp_file)
         self.assertTrue(host_provider.initialized)
         self.assertTrue(host_provider.hosts)
         self.assertEqual(host_provider._current_host_tuple,

@@ -12,7 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""" Some utility functions we use for
+""" Some utility functions we use for python logging, built on
+top of Python native logging package.
+It provides formatted layout in the logging file.
+In KingPin, this is used by zk_update_montior and zk_download_data processes.
+
+
+Usage:
+from kingpin.logging_utils import initialize_logger
+initialize_logger(logger_name='', logger_filename='',
+                  log_to_stderr=False, log_dir="/var/log")
+
 """
 
 import logging

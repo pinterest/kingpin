@@ -23,26 +23,25 @@ AND ThriftClientMixin (make sure your thrift-service-client class is the first
 base class.) You normally should also make your class a singleton to avoid
 creating too many connections to your thrift servers.
 
-      from common.utils.decorators import singleton
-      from services.userfeed.thrift_libs import UserfeedService
-      from services.utils.base_thrift_exceptions import ThriftConnectionError
-      from services.utils.thrift_client_mixin import ThriftClientMixin
+      import TestService
+      from kingpin.thrift_utils.base_thrift_exceptions import ThriftConnectionError
+      from kingpin.thrift_utils.thrift_client_mixin import PooledThriftClientMixin
 
-      class UserfeedServiceConnectionException(ThriftConnectionError):
+      class TestServiceConnectionException(ThriftConnectionError):
         pass
 
       @singleton
-      class UserfeedServiceClient(UserfeedService.Client,
+      class TestServiceClient(TestService.Client,
                                   ThriftClientMixin):
           def get_connection_exception_class(self):
-            return UserfeedServiceConnectionException
+            return TestServiceConnectionException
 
-2. Create a object of UserfeedServiceClient by passing a HostsProvider
+2. Create a object of TestServiceClient by passing a HostsProvider
 object (see common/utils/hosts.py). Then you are ready to call any
 thrift RPC method.
 
-      client = UserfeedServiceClient(
-          host_provider=HostProvider(['userfeed1:8000', 'userfeed2:8001', ...])
+      client = TestServiceClient(
+          host_provider=HostProvider(['Test1:8000', 'Test2:8001', ...])
 
       homefeed = client.getHomefeed(user_id, 0, 50)
 
@@ -50,40 +49,35 @@ thrift RPC method.
       homefeed = client.getHomefeed(user_id, 0, 50, rpc_timeout_ms=1000)
 
 
-NOTE: that UserfeedServiceClient defined above is *not* greenlet-safe. If you
+NOTE: that TestServiceClient defined above is *not* greenlet-safe. If you
 want a GREENLET-SAFE client, inherit from PooledThriftClientMixin instead of
 ThriftClientMixin and pass pool_size when creating the client. For example:
 
 1.
-      from common.utils.decorators import singleton
-      from services.userfeed.thrift_libs import UserfeedService
-      from services.utils.base_thrift_exceptions import ThriftConnectionError
-      from services.utils.thrift_client_mixin import PooledThriftClientMixin
+      import TestService
+      from kingpin.thrift_utils.base_thrift_exceptions import ThriftConnectionError
+      from kingpin.thrift_utils.thrift_client_mixin import PooledThriftClientMixin
 
-      class UserfeedServiceConnectionException(ThriftConnectionError):
+      class TestServiceConnectionException(ThriftConnectionError):
         pass
 
       @singleton
-      class PooledUserfeedServiceClient(UserfeedService.Client,
+      class PooledTestServiceClient(TestService.Client,
                                         PooledThriftClientMixin):
           def get_connection_exception_class(self):
-            return UserfeedServiceConnectionException
+            return TestServiceConnectionException
 
 
 2.
-    client = PooledUserfeedServiceClient(
-        host_provider=HostProvider(['userfeed1:8000', 'userfeed2:8001', ...])
+    client = PooledTestServiceClient(
+        host_provider=HostProvider(['Test1:8000', 'Test2:8001', ...])
         pool_size=5)
 
-    # client is greenlet-safe.
-    homefeed = client.getHomefeed(user_id, 0, 50)
-
-    # You can pass a per request timeout, e.g.
-    homefeed = client.getHomefeed(user_id, 0, 50, rpc_timeout_ms=1000)
+    client.ping()
 
 
-Under the hood, PooledUserfeedServiceClient maintains a pool with pool_size
-number of UserfeedServiceClient-like objects and make sure every RPC is made
+Under the hood, PooledTestServiceClient maintains a pool with pool_size
+number of TestServiceClient-like objects and make sure every RPC is made
 exclusively using one of the clients in the pool.
 
 """
@@ -389,7 +383,7 @@ class PooledThriftClientMixin(object):
     It wraps around ThriftClientMixin by pooling multiple ThriftClientMixin
     objects and delegates operations on them exclusively. Sample usage:
 
-    class PooledUserfeedServiceClient(UserfeedService.Client,
+    class PooledTestServiceClient(TestService.Client,
                                       PooledThriftClientMixin):
         def get_connection_exception_class(self):
             return SomeExceptionClass

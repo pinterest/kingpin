@@ -21,6 +21,7 @@ from thrift.server import TServer
 
 import TestService
 
+
 class TestServiceHandler:
     def __init__(self):
         pass
