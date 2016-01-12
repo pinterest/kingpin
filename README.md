@@ -4,47 +4,45 @@ KingPin is the Python toolset used at Pinterest for facilitating service oriente
 
 
 ## Key Packages & Features
-- **Kazoo Utils**: A wrapper for Kazoo and include utils like service registration and local file watcher.
-- **Thrift Utils**: A wrapper for python Thrift clients which supports service discovery and connection pool management.
+- **Kazoo Utils**: A wrapper for Kazoo and implements utils like ServerSet, DataWatcher and Hosts selectors.
+- **Thrift Utils**: A wrapper for python Thrift clients which transparently handles retry, service discovery.
 - **Config Utils**: A system that stores configuration on S3, using Zookeeper as the notification system.
-- **ZK Update Monitor**: A daemon caching configurations and serversets into local disk from Zookeeper and S3.
+- **ZK Update Monitor**: A daemon which syncs configurations and serversets to local disk from Zookeeper and S3.
 - **Decider**: A common utility widely used at Pinterest which controls the global values. Built on ConfigV2. 
 - **Managed Datastructure**: A common utility wide used at Pinterest whcih supports easy access/modification of configurations in Map/List format.
 - **MetaConfig Manager**: A system that manages all configuration and dependencies, built on top of Zookeeper and S3.
 
 
 ## High level Concepts
-Kingpin contains various python packages which serve as the basic infrastructure LEGO widely used at Pinterest. These packages interactive 
-with each other to forming a complete solution. 
+Kingpin contains various python packages which serve as the basic infrastructure LEGO widely used at Pinterest.  
 
 ![Package Architecture](https://cloud.githubusercontent.com/assets/15947888/12130580/6a293310-b3c0-11e5-9e78-bb8c62baf4e4.png)
 
-KingPin relies on 3rd party packages like Kazoo(1.0, the zookeeper client impl in Python), Boto S3 APIs (the S3 client impl in Python), 
-Zookeeper and AWS S3. Zookeeper is used to store serversets and serve as the notification hub for changes, S3 is used to store configuration 
-data. 
+KingPin relies on 3rd party packages like Kazoo, Boto, Zookeeper and AWS S3. 
 
+Zookeeper is used to store dynamic serversets and acts as the notification channel for config changes. S3 is used to store configuration data. 
 On top of Zookeeper and Kazoo, we have Kazoo Utils which we have some improvements on Kazoo native APIs and does service discovery and registration. 
 We use thrift as the RPC protocal, so we built thrift-utils on top of thrift and kazoo_utils which make people easier to write a python thrift client. 
 
-We also have our own application configuration management built on top of Zookeeper and S3 which we call it Config Utils (we call it ConfigV2 internally). 
-Basically people can make change to a configuration, the system will put the new content to a separate versioned file in S3, and update the version number in Zookeeper. 
+We also have our own application configuration management system built on top of Zookeeper and S3 which we call it Config Utils (we call it ConfigV2 internally). 
+Basically people can make change to a configuration, the system will put the new content to a new versioned file in S3, and update the version number in Zookeeper. 
 You can refer to this [engineering blog](https://engineering.pinterest.com/blog/serving-configuration-data-scale-high-availability) which contains more information inside. 
 
-We also built some data structures like lists, hashmap and json for Pinterest Engineers to easily read/write to configurations. We also have a structure called Decider (ranging from 0 to 100) 
-for engineers to dynamically change values in realtime. 
+We also built some data structures like lists, hashmap and json for Pinterest Engineers to easily read/write to configurations. 
+We also have a structure called Decider (ranging from 0 to 100) for engineers to dynamically change values in realtime, which is pretty useful for experiments control. 
 
 Both application configuration management and service discovery are watched and updated by a process running on each box called ZK Update Monitor. Our philosophy is to leverage
-the atomic broadcasting nature in Zookeeper to fanout the change to every box so each machine only needs to talk to local file, instead of establishing a session to Zookeeper. ZK Update Monitor
-is the only proxy talking to Zookeeper on each box for getting the newest serverset of configuration content. We have an [engineering blog](https://engineering.pinterest.com/blog/zookeeper-resilience-pinterest) 
-which contains the more details about it.
+the atomic broadcasting guarantee provided by Zookeeper to fanout the change to every box so each machine only needs to talk to local file, instead of establishing a session to Zookeeper. ZK Update Monitor
+is the only proxy talking to Zookeeper on each box for getting the newest serverset of configuration content. 
+We have an [engineering blog](https://engineering.pinterest.com/blog/zookeeper-resilience-pinterest) which contains the more details about it.
 
 Another framework we provide in KingPin is called MetaConfig Manager. We found that sometimes we need to manage the dependency like ```what cluster needs what configuration or serverset```. 
 MetaConfig is basically a configuraiton which tells ZK Update Monitor how to download a particular configuration or serverset. The MetaConfig Manager stores the dependency graph in Zookeeper and 
-metaconfig in S3 (which is built on top of Config Utils). If a box want to add a serverset or configuration dependency, simple call MetaConfig API and the new config will be added to all subscribers 
+metaconfigs in S3. If a box want to add a serverset or configuration dependency, simply call MetaConfig API and the new config will be added to all subscribers 
 immediately.
 
-## Configurations
-Here are some steps you need to configure before start using KingPin.
+## Configuration and Installation
+Here the steps how to make KingPin running.
 
 ### Setting Up AWS and S3 credentials file
 In order to talk to S3, you need to prepare a boto (yaml) config file with aws keys in place.
@@ -73,14 +71,14 @@ sudo bin/zkServer.sh stop
 ```
 
 We use a file to list a set of Zookeeper endpoints. For the local Zookeeper single node case, we provided a 
-file called ```local_zk_hosts``` under examples directory. There should only be one liner there which points to the localhost zookeeper node.
+file ```examples/local_zk_hosts```. There should only be one liner there which points to the localhost zookeeper node.
 You need to refer to that file for future use.
 
 
 ### Install Thrift
 Follow the instructions [in this page](https://thrift.apache.org/docs/install/) for installing thrift library.
 
-### Install Dependent Packages and KingPin
+### Install KingPin
 KingPin is a python package, we suppose you already have Python and [Pip](https://pip.pypa.io/en/stable/) installed. 
 In order not to screw up with your exsiting Python libs, we recommend using [Virtual Environments](http://docs.python-guide.org/en/latest/dev/virtualenvs/) 
 as the clean container of KingPin and its dependencies. 
@@ -123,7 +121,6 @@ Once you filled in the blanks in the configuration, you can run ZK Update Monito
 sudo supervisord -c examples/supervisor_zk_update_monitor.conf
 ```
 
-
 ### Unit Tests
 ```sh
 nosetests
@@ -141,13 +138,15 @@ The application configuration framework consists of 3 parts: Manageddata or Deci
 
 ![Architecture](https://cloud.githubusercontent.com/assets/15947888/12151080/1f5d0698-b462-11e5-8c4f-78809cee3ec3.png)
 
-In the following example, we walk through the process an application subscribes an managed list configuration, and watches the changes and download to local disk. 
-Decider works almost the same except the difference in APIs. We provide a script in examples/metaconfig_shell.py which help you easily create conifg and dependencies. 
+In the following example, we walk through the process that an application subscribes a managed list, and watches the changes and download to local disk. 
+Decider works almost the same except the difference in APIs. We provide a script in ```examples/metaconfig_shell.py``` which help you easily 
+create conifg and dependencies. 
+
 Of course, on top of the config APIs, you can easily build a fancier UI.
 
 #### Creating a ManagedData
-The name of manageddata has a Domain and a Key. The domain is like the group, the key is like the member. For example, 
-a typical managedlist used inside Pinterest is called "config.manageddata.spam.blacklist". Here "spam" is the domain,
+The name of manageddata has a ```Domain``` and a ```Key```. The domain is like the group, the key is like the member. For example, 
+a typical managedlist used inside Pinterest is called ```config.manageddata.spam.blacklist```. Here "spam" is the domain,
 "blacklist" is the key.
 
 Run the following command for starting the an interactive tool for creating a manageddata configuration:
@@ -156,7 +155,8 @@ cd kingpin
 python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
 ```
 
-Type "2" -> "1" to create a manageddata, and give the domain and key name. Let's give the domain called "test", key called "test_config". The created manageddata is then called ```config.manageddata.test.test_config```. Remember this name for future use.
+Type "2" -> "1" to create a manageddata, and give the domain and key name. Let's give the domain called "test", key called "test_config". 
+The created manageddata is then called ```config.manageddata.test.test_config```. Remember this name for future use.
 
 #### Creating a Dependency
 The manageddata should be created. Now we need to create a dependency. 
@@ -169,9 +169,9 @@ Let's create a a dependency called ```test_dependency.dep```.
 #### Adding the Manageddata to a Dependency
 Then we should be able to add the created manageddata to the created dependency. Run ```metaconfig_shell.py``` and type "3", type ```test_dependency.dep``` and ```config.manageddata.test.test_config``` respectively to add the manageddata config into the dependency.
 
-
 #### Running ZK Update Monitor
-Don't forget to start ZK Update Monitor. You need to replace the "Dependency Name" in the Zk Update Monitor command line inside supervisord configuration to "test_dependency.dep".
+Don't forget to start ZK Update Monitor. You need to replace the ```[dependency-name]``` in the Zk Update Monitor command line inside supervisord configuration (which is localed in ```examples/supervisor_zk_update_monitor.conf```
+ to "test_dependency.dep", also don't want to change the bucket name.
 
 Now ZK Update Monitor is watching changes of the configuration called "config.manageddata.test.test_config". You can double check by querying the Zk Update Monitor admin flask endpoint:
 
@@ -198,7 +198,7 @@ managedlist.add("test_data")
 ```
 
 If no error happens, you can check the content of the managedlist which is ```/var/config/config.manageddata.test.test_config```. 
-There should be one item called "test_data" inside. 
+There should be one item called ```test_data``` inside. 
 
 ### Thrift and Service Discovery
 In this example we bring up a test thrift server locally, register it to a serverset and use thrift_util 
