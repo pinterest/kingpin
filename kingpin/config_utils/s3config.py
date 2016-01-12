@@ -33,8 +33,8 @@ AWS_KEYFILE_SECRET_KEY_FIELD = 'aws_secret_access_key'
 
 
 class S3Config(object):
-    """ This class takes a boto config file with aws keys and an S3 filename as arguments
-        and returns the dereferenced data from the actual config data file from S3_CONFIG_BUCKET
+    """ This class takes a boto config file with aws keys and an S3 bucket name as arguments.
+        This is used as the wrapper we read and write data to S3.
     """
 
     def __init__(self, aws_key_file, s3_bucket, s3_endpoint="s3.amazonaws.com"):

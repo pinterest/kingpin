@@ -25,14 +25,10 @@ again after a timeout period.
 import logging
 import os
 from . import ServerSet
-from .decorators import SingletonMetaclass
 from .utils import dummy_statsd, hostname
-
 
 import random
 import time
-
-from gevent.coros import RLock
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +45,8 @@ class HostsProvider(object):
 
         Args:
             static_host_list: The list of hosts providing this service as
-                specified in the settings.
+                specified in the settings. If it is an empty list,
+                the HostProvider will will read the file from server_set_path or file_path.
             server_set_path: The server set path to retrieve the current
                 list of live hosts. If both this parameter and file_path are
                 empty string or not set, it implies that we are not using
@@ -153,67 +150,6 @@ class HostsProvider(object):
             self._server_set_path,
             self._current_host_tuple == self._static_host_tuple,
             self._current_host_tuple)
-
-
-class HostProviderDict(object):
-    """A dictionary for all host providers.
-
-    The intended usage is to have the caller retrieve the host provider for a
-    given service by calling ``get``, if one is certain that such a host
-    provider has already been registered. If not, ``get_and_register``
-    should be called instead.
-
-    """
-
-    __metaclass__ = SingletonMetaclass
-
-    def __init__(self):
-        self._host_providers = {}
-        self._lock = RLock()
-
-    def get(self, name):
-        """Get the host provider for the given name, could return None."""
-        return self._host_providers.get(name)
-
-    def get_and_register(self, name, static_host_list, server_set_path,
-                         file_path, statsd_client=dummy_statsd):
-        """Get the host provider for the given name; if None, register."""
-        host_provider = self._host_providers.get(name)
-        if host_provider is not None:
-            return host_provider
-        self.register(name, static_host_list, server_set_path,
-                      statsd_client=statsd_client, file_path=file_path)
-        return self._host_providers.get(name)
-
-    def register(self, name, static_host_list, server_set_path=None,
-                 statsd_client=dummy_statsd, file_path=None):
-        """Register the host provider with this Dictionary.
-
-        Args:
-            name: The name of the host provider.
-            static_host_list: The static list of hosts providing the service.
-            server_set_path: The path to the server set on zookeeper. Only
-            pass this in if you intend to use zookeeper based server set
-            to get the live hosts.
-            statsd_client: statsd client, if none is provided, a dummy
-            client will be used.
-            file_path: The local file path containing server set.
-
-        """
-        with self._lock:
-            if name in self._host_providers:
-                return
-            log.debug("Register host provider for %s with server set path: %s,"
-                      "file path: %s, and static host list: %s.",
-                      name, server_set_path, str(file_path), static_host_list)
-            host_provider = HostsProvider(
-                static_host_list, server_set_path, statsd_client=statsd_client,
-                file_path=file_path)
-            self._host_providers[name] = host_provider
-
-    def __str__(self):
-        return ("\n".join('%s="%s"' % (k, v) for (k, v) in
-                          self._host_providers.iteritems()))
 
 
 class BaseHostSelector(object):
@@ -365,7 +301,8 @@ class BaseHostSelector(object):
 
 
 class RandomHostSelector(BaseHostSelector):
-    """Host selector with random host selection."""
+    """Host selector with random host selection, it is the default
+    host selector in ThriftClientMixin."""
 
     def __init__(self, host_provider, expire_time=600, retry_time=60,
                  invalidation_threshold=0.2):

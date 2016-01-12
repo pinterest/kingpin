@@ -31,7 +31,8 @@ ZK_DOWNLOAD_DATA_CONFIGV2_FORMAT = 'zk_download_data.py -f /var/config/{} --from
 
 class MetaConfigManager(object):
     """
-    A manager which handles all dependency / management of MetaConfigs.
+    A manager which handles all dependencies and manageddata / serversets via MetaConfigs.
+
     MetaConfig: Configurations which tell zk_update_monitor how to update / download serverset or configurations.
     One MetaConfig example (in json):
          [
@@ -43,10 +44,11 @@ class MetaConfigManager(object):
                 "max_wait_in_secs": 0
             }
          ]
+
     The manager has the following capabilities:
     1. Create / update a MetaConfig and archive the history to S3 using ZKConfigManager.
     2. Create a new dependency ZK Node
-    3. Add a dependency to existing dependency
+    3. Add a metaconfig to existing dependency
     4. Some templating : Auto-generating the Zk_download_data command for serverset / configv1 / configv2
     5. Convert a .conf metaconfig file into json formatted metaconfig
 

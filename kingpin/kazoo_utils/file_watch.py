@@ -111,11 +111,12 @@ class FileWatch:
                  polling_wait_in_seconds=_POLLING_WAIT_IN_SECONDS,
                  sc=dummy_statsd):
         """
-        :param polling: flag to indicate whether the greenlet for polling
-         file changes is started, having this option is mainly for unit
-         testing so that tests can disable polling.
-         polling_wait_in_seconds: Mostly for testing, allow to inject a small
-         wait time so tests can go through quickly.
+        Args:
+            polling: flag to indicate whether the greenlet for polling
+             file changes is started, having this option is mainly for unit
+             testing so that tests can disable polling.
+             polling_wait_in_seconds: Mostly for testing, allow to inject a small
+             wait time so tests can go through quickly.
         """
         # a map from (file_path, watch_type) to (timestamp, hash, [func])
         self._watched_file_map = {}
