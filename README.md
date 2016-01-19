@@ -5,12 +5,12 @@ KingPin is the Python toolset used at Pinterest for facilitating service oriente
 
 ## Key Packages & Features
 - **Kazoo Utils**: A wrapper for Kazoo and implements utils like ServerSet, DataWatcher and Hosts selectors.
-- **Thrift Utils**: A wrapper for python Thrift clients which transparently handles retry, service discovery.
-- **Config Utils**: A system that stores configuration on S3, using Zookeeper as the notification system.
+- **Thrift Utils**: A wrapper for python Thrift clients which transparently handles retry and integrated with service discovery framework provided in Kazoo Utils.
+- **Config Utils**: A system that stores configuration on S3 and uses Zookeeper as the notification system to broadcast updates to subscribers.
 - **ZK Update Monitor**: A daemon which syncs configurations and serversets to local disk from Zookeeper and S3.
-- **Decider**: A common utility widely used at Pinterest which controls the global values. Built on ConfigV2. 
-- **Managed Datastructure**: A common utility wide used at Pinterest whcih supports easy access/modification of configurations in Map/List format.
-- **MetaConfig Manager**: A system that manages all configuration and dependencies, built on top of Zookeeper and S3.
+- **Decider**: A common utility widely used at Pinterest which controls the global values. Built on top of Config Utils.
+- **Managed Datastructure**: A common utility wide used at Pinterest which supports easy access/modification of configurations in Map/List format in Python.
+- **MetaConfig Manager**: A system that manages all configurations/serversets and dependencies (subscriptions), built on top of Zookeeper and S3.
 
 
 ## High level Concepts
@@ -187,7 +187,8 @@ The created manageddata is then called ```config.manageddata.test.test_config```
 
 #### Creating a Dependency
 The manageddata should be created. Now we need to create a dependency. 
-A dependency is a collection of manageddata or serverset which tells the subscription of a cluster to a set of configurations. ZK Update Monitor need to know the dependency of the localbox so it can subscribe and downlaod corresponding configurations.
+A dependency is a collection of manageddata or serverset which tells the subscription of a set of serversets or configurations. 
+ZK Update Monitor need to know the dependency of the localbox so it can subscribe and downlaod corresponding configurations.
 
 Run the ```metaconfig_shell.py``` again, and type "1" and create a dependency. In order to tell the difference between a dependency and a configuration internally, we require dependency names to be ended with ```.dep```. 
 
