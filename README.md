@@ -44,6 +44,16 @@ immediately.
 ## Configuration and Installation
 Here the steps how to make KingPin running.
 
+### Python 2.7.3
+KingPin is tested under Python 2.7.3 at Pinterest scale. We highly recommend you run KingPin using Python 2.7.3.
+
+### Install Pip
+Please follow [this website](https://pip.pypa.io/en/stable/installing/) to make sure pip is installed on your box:
+```sh
+wget https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+```
+
 ### Setting Up AWS and S3 credentials file
 In order to talk to S3, you need to prepare a boto (yaml) config file with aws keys in place.
 We provide an template for boto S3 config file in ```kingpin/examples/example_aws_keyfile.conf```. 
@@ -51,11 +61,11 @@ Replacing the ```aws_access_key_id``` and ```aws_secret_access_key``` with your 
 section to configure your aws/s3 acecss. Prepare the file in some place ready for future use.
 
 ### Install Zookeeper
-If you don't have a [Zookeeper](https://zookeeper.apache.org/) cluster and want to try KingPin out on local machine, you can [download it](http://mirror.metrocast.net/apache/zookeeper/zookeeper-3.4.7/).
+If you don't have a [Zookeeper](https://zookeeper.apache.org/) cluster and want to try KingPin out on local machine, you can [download it](http://apache.mirrors.lucidnetworks.net/zookeeper/zookeeper-3.4.6/).
 
 After downloaded, untar it and run:
 ```sh
-cd zookeeper-3.4.7
+cd zookeeper-3.4.6
 cp conf/zoo_sample.cfg conf/zoo.cfg
 sudo bin/zkServer.sh start
 ```
@@ -79,7 +89,8 @@ You need to refer to that file for future use.
 Follow the instructions [in this page](https://thrift.apache.org/docs/install/) for installing thrift library.
 
 ### Install KingPin
-KingPin is a python package, we suppose you already have Python and [Pip](https://pip.pypa.io/en/stable/) installed. 
+KingPin is a python package, we suppose you already have Python and [Pip](https://pip.pypa.io/en/stable/) installed.
+
 In order not to screw up with your exsiting Python libs, we recommend using [Virtual Environments](http://docs.python-guide.org/en/latest/dev/virtualenvs/) 
 as the clean container of KingPin and its dependencies. 
 
@@ -96,14 +107,20 @@ source venv/bin/activate
 ```sh
 pip install -r requirements.txt
 ```
+If you get some error when installing gevent, you may need to install [libevent](http://libevent.org/) first.'
+If after installing libevent you still get the header file cannot found error, you can manually install gevent by running:
+```sh
+CFLAGS="-I /usr/local/include -L /usr/local/lib" pip install gevent==0.13.8
+```
+Note that the INCLUDE and LIB path may vary, both are the actual places you libevent is installed.
+
+After you get this error fixed, you may need to run ```pip install -r requirements.txt```
+again to finish the dependency installation.
 
 #### Install KingPin
 ```sh
 sudo python setup.py install
 ```
-
-You may need to run this script outside venv as well so our supervisord can capture the executable. Another option is to change the supervisor
-config to tell the absolute path of venv/bin so ZK Update Monitor and ZK Register can be run correctly.
 
 ### Install Supervisor
 ZK Update Monitor is running inside [Supervisor](http://supervisord.org/). Supervisor makes ZK Update Monitor to run under the supervisord container. 
@@ -119,6 +136,10 @@ Once you filled in the blanks in the configuration, you can run ZK Update Monito
 
 ```sh
 sudo supervisord -c examples/supervisor_zk_update_monitor.conf
+```
+You can verify if zk_update_monitor is running by:
+```sh
+ps aux | grep zk_update_monitor
 ```
 
 ### Unit Tests
@@ -143,6 +164,12 @@ Decider works almost the same except the difference in APIs. We provide a script
 create conifg and dependencies. 
 
 Of course, on top of the config APIs, you can easily build a fancier UI.
+
+#### Creating Local Directory for Storing Configs
+Before doing everything, you need to create a directory under /var/ path using sudo permission:
+```sh
+sudo mkdir /var/config
+```
 
 #### Creating a ManagedData
 The name of manageddata has a ```Domain``` and a ```Key```. The domain is like the group, the key is like the member. For example, 
@@ -206,6 +233,11 @@ to talk to the test server.
 
 ![Architecture](https://cloud.githubusercontent.com/assets/15947888/12178908/f293f14a-b528-11e5-8ed9-a1fb3a1541ef.png)
 
+#### Creating Local Directory for Storing Serversets
+Before doing everything, you need to create a directory under /var/ path using sudo permission:
+```sh
+sudo mkdir /var/serverset
+```
 
 #### Creating a serverset
 Let's create the serverset of the service "test_service". Running in a environment called "prod". The format of a serverset name is discovery.{service name}.{service environment}.
@@ -226,7 +258,7 @@ We can add the serverset to the dependency so ZK Update Monitor can watch any ch
 ```sh
 python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
 ```
-Type "3" to add the serverset "discovery.test_service.prod" to "test_dependency.dep" as the instruction shows.
+Type "3" to add the serverset ```discovery.test_service.prod``` to ```test_dependency.dep``` as the instruction shows.
 
 
 #### Joining a serverset
@@ -315,7 +347,7 @@ Michael Fu, Jiacheng Hong, Xun Liu, Yash Nelapati, Aren Sandersen, Aleksandar Ve
 
 ## License
 
-Copyright 2015 Pinterest, Inc.
+Copyright 2016 Pinterest, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 

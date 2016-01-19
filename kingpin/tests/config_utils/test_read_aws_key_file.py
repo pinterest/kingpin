@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2015, Pinterest Inc.  All rights reserved.
+# Copyright (c) 2016, Pinterest Inc.  All rights reserved.
 
 from kingpin.config_utils.s3config import S3Config
 from unittest import TestCase

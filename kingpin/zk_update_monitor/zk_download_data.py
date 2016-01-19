@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Pinterest, Inc
+# Copyright 2016 Pinterest, Inc
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import math
 import os
 import re
 import requests
+import shutil
 import string
 import tempfile
 import time
@@ -624,7 +625,7 @@ def main():
                       "Data to write: %s" % (tmp_filename, zk_data))
         exit(_UNHANDLED_EXCPETION)
 
-    os.rename(tmp_filename, args.file)
+    shutil.copy2(tmp_filename, args.file)
     log.info("File is generated.")
 
     # Report the file modification time.
