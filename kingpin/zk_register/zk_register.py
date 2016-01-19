@@ -3,15 +3,6 @@
 """
 This is a script that registers services with a serverset in ZK for discovery
 
-This will register the following data:
-    - IP address
-    - Port
-    - Weight
-
-Port can be a single integer, a comma seperated list or a range of integers such as 3000-3008
-
-Additional data can be stored using the --aux_data option to pass in a json string
-
 Usage:
 
     zk_register --service <name> --port <port#> --weight <number> --usepublicip --useservicecheck --usehostname
