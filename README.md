@@ -105,6 +105,7 @@ source venv/bin/activate
 
 #### Install KingPin Dependency Packages
 ```sh
+cd kingpin
 pip install -r requirements.txt
 ```
 If you get some error when installing gevent, you may need to install [libevent](http://libevent.org/) first.'
@@ -119,6 +120,7 @@ again to finish the dependency installation.
 
 #### Install KingPin
 ```sh
+cd kingpin
 sudo python setup.py install
 ```
 
@@ -135,6 +137,7 @@ We provided an example supervisor configuration under examples/ directory. The c
 Once you filled in the blanks in the configuration, you can run ZK Update Monitor via Supervisor under KingPin Directory:
 
 ```sh
+cd kingpin
 sudo supervisord -c examples/supervisor_zk_update_monitor.conf
 ```
 You can verify if zk_update_monitor is running by:
@@ -257,6 +260,7 @@ Suppose you have already created the dependency called "test_dependency.dep".
 We can add the serverset to the dependency so ZK Update Monitor can watch any change of the serverset:
 
 ```sh
+cd kingpin
 python examples/metaconfig_shell.py -z examples/local_zk_hosts -a examples/example_aws_keyfile.conf -b [Your S3 Bucket to Put Config Data] -e s3.amazonaws.com
 ```
 Type "3" to add the serverset ```discovery.test_service.prod``` to ```test_dependency.dep``` as the instruction shows.
@@ -289,6 +293,7 @@ We provide an example thrift definition in examples/ directory called ```test_se
 
 Run the following command to get the generated code in Python:
 ```sh
+cd kingpin
 thrift -r --gen py examples/test_service.thrift
 ```
 
