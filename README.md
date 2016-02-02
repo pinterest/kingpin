@@ -1,5 +1,7 @@
 # KingPin
 
+[![Build Status](https://travis-ci.org/pinterest/kingpin.svg)](https://travis-ci.org/pinterest/kingpin)
+
 KingPin is the Python toolset used at Pinterest for facilitating service oriented architecture and application configuration management.
 
 
