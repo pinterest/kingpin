@@ -43,12 +43,21 @@ __INITIALIZED = {}
 #: Note that we default to :py:const:`logging.INFO`.
 #: Can be overridden with environment variable ``PINLOG_STDERR_LEVEL`` by
 #: setting it to `DEBUG`, `INFO`, `WARNING`, `ERROR` or `FATAL`.
-STDERR_LEVEL = getattr(logging, 'INFO')
+STDERR_LEVEL = getattr(logging, os.environ.get("PINLOG_STDERR_LEVEL", "INFO"))
 
 #: Nothing below this loglevel is logged (in ``stderr``, a file, ``syslog``,
 #: # etc).  This uses the same format as :py:const:`STDERR_LEVEL`.
 #: Can be overridden with environment variable ``PINLOG_MIN_LOG_LEVEL``.
-MIN_LOG_LEVEL = getattr(logging, 'INFO')
+MIN_LOG_LEVEL = getattr(logging, os.environ.get("PINLOG_MIN_LOG_LEVEL", "INFO"))
+
+#: Logfiles are written into this directory.  If not set log files are not
+#: written to disk.
+#: Can be overridden with environment variable ``PINLOG_LOG_DIR``.
+LOG_DIR = os.getenv("PINLOG_LOG_DIR")
+
+#: Log files are written to this filename.
+#: Can be overridden with environment variable ``PINLOG_LOG_FILE``.
+LOG_FILE = os.getenv("PINLOG_LOG_FILE", "/var/log")
 
 
 def __generate_filename():
@@ -90,7 +99,7 @@ def __get_file_formatter():
     return logging.Formatter(fmt=LINE_FORMAT, datefmt=ASCII_TIME_FORMAT)
 
 
-def initialize_logger(logger_name='', logger_filename='', log_to_stderr=False, log_dir="/var/log"):
+def initialize_logger(logger_name='', logger_filename=LOG_FILE, log_to_stderr=False, log_dir=LOG_DIR):
     """Initialize global log.
 
     Before using the log object, run ``initialize_logger()`` to set up
