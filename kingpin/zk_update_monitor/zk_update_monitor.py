@@ -273,6 +273,10 @@ EXTRA_FLAGS_FOR_ZK_DOWNLOAD_DATA = None
 
 _CONFIGV3_INITIALIZED = False
 
+_START_TIME = datetime.datetime.now()
+
+_LAST_SUCCESS_PERIODIC_CHECK = None
+_PATH_TO_WATCHER = {}
 
 def update_serverset_metadata(zk_path, notification_timestamp, value):
     hashsum = zk_util.get_md5_hash_sum(value)
@@ -541,7 +545,7 @@ def _run_command_and_check_ret_code(command, env, alert_disabled,
         if not _INITIALIZATION_COMPLETED:
             gevent.sleep(random.uniform(0, 2.0))
         command += EXTRA_FLAGS_FOR_ZK_DOWNLOAD_DATA
-        subprocess.check_call(command, shell=True, env=env)
+        ret = subprocess.check_call(command, shell=True, env=env)
         log.debug("Command %s is executed successfully." % command)
         if (not downloader_report_metadadata) \
                 and watch_type == 'serverset' \
@@ -549,8 +553,10 @@ def _run_command_and_check_ret_code(command, env, alert_disabled,
             update_serverset_metadata(zk_path, notification_timestamp, value)
         if zk_path in _REJECTED_UPDATED_SERVERSETS:
             _REJECTED_UPDATED_SERVERSETS.remove(zk_path)
+        _PATH_TO_DATA[zk_path].update({"run_command_ret": ret})
     except subprocess.CalledProcessError as e:
         error_code = e.returncode
+        _PATH_TO_DATA[zk_path].update({'run_command_ret': error_code})
         if error_code in _IGNORED_RET_CODES:
             log.debug("Got return code '%d' for command '%s' and ignored"
                       % (error_code, command))
@@ -568,8 +574,6 @@ def _run_command_and_check_ret_code(command, env, alert_disabled,
                                             watch_type, zk_path,
                                             notification_timestamp, value)
         else:
-            log.error("Got return code %d for command '%s'"
-                      % (error_code, command))
             if error_code in _SERVERSET_REJECTION_ERROR_CODES and zk_path:
                 if zk_path not in _REJECTED_UPDATED_SERVERSETS:
                     _REJECTED_UPDATED_SERVERSETS.add(zk_path)
@@ -580,6 +584,7 @@ def _run_command_and_check_ret_code(command, env, alert_disabled,
 #############################################
 def _periodic_checking():
     while True:
+        global _LAST_SUCCESS_PERIODIC_CHECK
         try:
             log.info('sleeping... for %s seconds'
                      % (str(WAKEUP_FREQUENCY_IN_SECS)))
@@ -592,6 +597,7 @@ def _periodic_checking():
                 _kill("Restart from periodic_checking")
             _refresh_all_commands()
             _retry_nonexistent_zk_paths(list(_CONFIGS_WITH_NONEXISTENT_PATH))
+            _LAST_SUCCESS_PERIODIC_CHECK = datetime.datetime.now()
         except Exception:
             log.exception("Periodic checking error")
 
@@ -634,21 +640,6 @@ def _retry_nonexistent_zk_paths(configs):
         failed = [x for x in configs if not _place_watch_from_metaconfig(x)]
         del _CONFIGS_WITH_NONEXISTENT_PATH[:]
         _CONFIGS_WITH_NONEXISTENT_PATH.extend(failed)
-
-
-def _dump_command_processing_info():
-    while True:
-        gevent.sleep(_DUMP_COMMAND_PROCESSING_INFO_INTERVAL_IN_SECONDS)
-        log.info("##### COMMAND PROCESSING INFO #####")
-        paths = list(_PATH_TO_COMMAND.keys())
-        paths.sort()
-        for path in paths:
-            command = _PATH_TO_COMMAND.get(path)
-            log.info("%s: %s was executed at %s",
-                     path,
-                     str(command),
-                     str(_COMMAND_TO_NOTIFICATION_TIME.get(command)))
-        log.info("############## DONE ###############")
 
 
 #################################
@@ -815,13 +806,15 @@ def _place_watch(config, zk_path, command,
     )
     _PATH_TO_COMMAND[zk_path] = command
     _PATH_TO_ALERT_DISABLED[zk_path] = alert_disabled
+    callback_func = functools.partial(
+        _run_command, zk_path, command, max_wait_in_secs, watch_type)
+    _PATH_TO_WATCHER[zk_path] = \
+        {"watcher": watcher, "func": callback_func, "watch_type": watch_type}
 
     if watch_type == 'serverset':
-        watcher.monitor(functools.partial(
-            _run_command, zk_path, command, max_wait_in_secs, watch_type))
+        watcher.monitor(callback_func)
     else:
-        watcher.watch(functools.partial(
-            _run_command, zk_path, command, max_wait_in_secs, watch_type))
+        watcher.watch(callback_func)
 
     return True
 
@@ -887,7 +880,6 @@ def main():
     initialize_zookeeper_aws_s3_configs(args)
 
     notification_processor = gevent.spawn(_notification_processor)
-    dump_command_processing_info = gevent.spawn(_dump_command_processing_info)
     dependency = args.dependency
     gevent.spawn(gevent_load_metaconfigs, dependency)
 
@@ -895,7 +887,6 @@ def main():
     holddown_queue_wiper = gevent.spawn(_holddown_queue_wiper)
     serverset_type_set_wiper = gevent.spawn(_serverset_type_set_wiper)
     _GREENLET_DICT["notification_processor"] = notification_processor
-    _GREENLET_DICT["dump_command_processing_info"] = dump_command_processing_info
     _GREENLET_DICT["periodic_checking"] = periodic_checking
     _GREENLET_DICT["holddown_queue_wiper"] = holddown_queue_wiper
     _GREENLET_DICT["serverset_type_set_wiper"] = serverset_type_set_wiper
@@ -1033,9 +1024,42 @@ def rejected_serversets_healthcheck():
     return resp
 
 
+@app.route("/admin/details")
+def report_detailscheck():
+    tmp = _PATH_TO_DATA.copy()
+    for k, v in _SERVERSET_METADATA.iteritems():
+        if k in tmp:
+            tmp[k].update(v)
+        else:
+            tmp[k] = v
+    message = {"start_time": _START_TIME.isoformat(),
+               "last_success_periodic_check": _LAST_SUCCESS_PERIODIC_CHECK.isoformat() if _LAST_SUCCESS_PERIODIC_CHECK is not None else None,
+               "data": tmp}
+    return json.dumps(message)
+
+
+@app.route("/admin/watch/<path:path>", methods=['POST'])
+def reset_watch(path):
+    zk_path = "/" + path
+    log.info("Reset watch on {0}".format(zk_path))
+    if zk_path in _PATH_TO_WATCHER:
+        watcher = _PATH_TO_WATCHER[zk_path]["watcher"]
+        func = _PATH_TO_WATCHER[zk_path]["func"]
+        watch_type = _PATH_TO_WATCHER[zk_path]["watch_type"]
+        if watch_type == "serverset":
+            log.info("Reset serverset {0}".format(zk_path))
+            watcher.monitor(func)
+        else:
+            log.info("Reset on config {0}".format(zk_path))
+            watcher.watch(func)
+    else:
+        log.info("Cannot find path {0}".format(zk_path))
+    return ""
+
+
 # Endpoints for nagios/saigon healthcheck, see whether zk_updater is up and running
 # Return 200 if all greenlet is running well.
-# Return 204 if greenlets are well, but intiilization is not completed.
+# Return 204 if greenlets are well, but initialization is not completed.
 # Return 500 if not all greenlets are working.
 @app.route("/admin/healthcheck")
 def flask_healthcheck():
@@ -1049,7 +1073,7 @@ def flask_healthcheck():
         resp = jsonify(message)
         resp.status_code = 500
     else:
-        if not _INITIALIZATION_COMPLETED:
+        if not _INITIALIZATION_COMPLETED and _LAST_SUCCESS_PERIODIC_CHECK is None:
             message = {"status": 204}
             resp = jsonify(message)
             resp.status_code = 204
