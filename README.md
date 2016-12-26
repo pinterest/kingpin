@@ -349,8 +349,8 @@ and run the script, it should output "pong".
 
 
 ## Contributors (in Alphabetical Order)
-Xiaofang Chen, Tracy Chou, Dannie Chu, Pavan Chitumalla, Steve Cohen, Jayme Cox, 
-Michael Fu, Jiacheng Hong, Xun Liu, Yash Nelapati, Aren Sandersen, Aleksandar Veselinovic, Chris Walters, Yongsheng Wu, Shu Zhang
+Xiaofang Chen, Tracy Chou, Dannie Chu, Lida Li, Pavan Chitumalla, Steve Cohen, Jayme Cox, 
+Michael Fu, Jiacheng Hong, Xun Liu, Yash Nelapati, Aren Sandersen, Aleksandar Veselinovic, Chris Walters, Yongsheng Wu, Shu Zhang, Suli Xu
 
 
 ## License
