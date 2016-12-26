@@ -71,7 +71,8 @@ to get the information.
 """
 
 
-from gevent import monkey; monkey.patch_all()
+from gevent import monkey
+monkey.patch_all()
 
 import argparse
 import datetime
@@ -536,6 +537,9 @@ def _run_command_and_check_ret_code(command, env, alert_disabled,
         # is calculated and updated in zk_update_monitor itself.
         if downloader_report_metadadata:
             command += " --report-metadata"
+        global _INITIALIZATION_COMPLETED
+        if not _INITIALIZATION_COMPLETED:
+            gevent.sleep(random.uniform(0, 2.0))
         command += EXTRA_FLAGS_FOR_ZK_DOWNLOAD_DATA
         subprocess.check_call(command, shell=True, env=env)
         log.debug("Command %s is executed successfully." % command)
@@ -619,6 +623,8 @@ def _refresh_all_commands():
                 zk_path=zk_path, downloader_report_metadadata=True)
         except:
             log.exception("Refresh commands exception")
+        gevent.sleep(3)
+        _INITIALIZATION_COMPLETED = True
 
 
 def _retry_nonexistent_zk_paths(configs):
