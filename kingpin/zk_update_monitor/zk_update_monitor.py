@@ -278,6 +278,9 @@ _START_TIME = datetime.datetime.now()
 _LAST_SUCCESS_PERIODIC_CHECK = None
 _PATH_TO_WATCHER = {}
 
+_ZK_SESSION_ID = None
+
+
 def update_serverset_metadata(zk_path, notification_timestamp, value):
     hashsum = zk_util.get_md5_hash_sum(value)
     try:
@@ -676,6 +679,21 @@ def _serverset_type_set_wiper():
         _NON_SKIP_FLAPPY_CHECK_SERVERSETS = set()
 
 
+def _check_local_session_state():
+    global _ZK_SESSION_ID
+    while True:
+        client = _kazoo_client()
+        log.info("Current zk session id %s", client._session_id)
+        if _ZK_SESSION_ID is None:
+            _ZK_SESSION_ID = client._session_id
+        elif _ZK_SESSION_ID != client._session_id:
+            log.warning("Zookeeper session changes from %s to %s", _ZK_SESSION_ID,client._session_id)
+            since_start = datetime.datetime.utcnow() - _START_TIME
+            if since_start.total_seconds()>180:
+                _kill("Restart since ZK session changes")
+        gevent.sleep(60)
+
+
 #########################################################
 ####### Funcs dealing with MetaConfig/Dependencies ######
 #########################################################
@@ -886,10 +904,13 @@ def main():
     periodic_checking = gevent.spawn(_periodic_checking)
     holddown_queue_wiper = gevent.spawn(_holddown_queue_wiper)
     serverset_type_set_wiper = gevent.spawn(_serverset_type_set_wiper)
+    session_checker = gevent.spawn(_check_local_session_state)
+
     _GREENLET_DICT["notification_processor"] = notification_processor
     _GREENLET_DICT["periodic_checking"] = periodic_checking
     _GREENLET_DICT["holddown_queue_wiper"] = holddown_queue_wiper
     _GREENLET_DICT["serverset_type_set_wiper"] = serverset_type_set_wiper
+    _GREENLET_DICT["session_checker"] = session_checker
 
     log.info('starting a Flask WSGI server for stats reporting')
     pywsgi.WSGIServer(("0.0.0.0", int(args.port)), app).serve_forever()
