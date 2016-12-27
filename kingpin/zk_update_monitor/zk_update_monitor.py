@@ -271,14 +271,15 @@ _WATCHED_METACONFIGS = set()
 # zookeeper endpoints, s3 endpoints, s3 bucket and aws keyfile path.
 EXTRA_FLAGS_FOR_ZK_DOWNLOAD_DATA = None
 
-_CONFIGV3_INITIALIZED = False
-
 _START_TIME = datetime.datetime.now()
 
 _LAST_SUCCESS_PERIODIC_CHECK = None
 _PATH_TO_WATCHER = {}
 
 _ZK_SESSION_ID = None
+
+# Every ZUM will load this dependency (if it has been created in zk)
+_GLOBAL_SHARED_DEPENDENCY = "base.dep"
 
 
 def update_serverset_metadata(zk_path, notification_timestamp, value):
@@ -701,8 +702,9 @@ def gevent_load_metaconfigs(dependency):
     try:
         log.info("Sleep 3 seconds for FLASK to start before actually loading")
         gevent.sleep(3)
-        # We prioritize the bootstraping of configs from ConfigV3
-        _load_metaconfigs_from_one_dependency(dependency)
+        _load_metaconfigs_from_one_dependency(_GLOBAL_SHARED_DEPENDENCY)
+        if dependency != _GLOBAL_SHARED_DEPENDENCY:
+            _load_metaconfigs_from_one_dependency(dependency)
         global _INITIALIZATION_COMPLETED
         _INITIALIZATION_COMPLETED = True
     except BaseException:
