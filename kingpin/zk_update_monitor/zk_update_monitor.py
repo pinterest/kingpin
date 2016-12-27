@@ -710,8 +710,8 @@ def _load_metaconfigs_from_one_dependency(dependency_name):
         return
     # Set ZK children watch on dependency
     log.info("Watching dependency %s" % dependency_name)
-    _kazoo_client(ZK_HOSTS).ChildrenWatch(dependency_zk_path, update_dependency)
     _WATCHED_DEPENDENCIES.add(dependency_name)
+    _kazoo_client(ZK_HOSTS).ChildrenWatch(dependency_zk_path, update_dependency)
 
 
 def update_dependency(dependents):
