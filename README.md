@@ -1,3 +1,7 @@
+**Note:** This project is no longer actively maintained by Pinterest.
+
+---
+
 # KingPin
 
 [![Build Status](https://travis-ci.org/pinterest/kingpin.svg)](https://travis-ci.org/pinterest/kingpin)
